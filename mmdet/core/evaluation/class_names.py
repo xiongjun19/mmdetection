@@ -12,6 +12,11 @@ def voc_classes():
         'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor'
     ]
 
+def icdr2019_classes():
+    return [
+        'text',
+    ]
+
 
 def imagenet_det_classes():
     return [
