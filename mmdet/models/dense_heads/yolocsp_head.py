@@ -221,7 +221,7 @@ class YOLOCSPHead(BaseDenseHead, BBoxTestMixin):
 
         return tuple(pred_maps),
 
-    # @force_fp32(apply_to=('pred_maps',))
+    @force_fp32(apply_to=('pred_maps',))
     def get_bboxes(self,
                    pred_maps,
                    img_metas,
