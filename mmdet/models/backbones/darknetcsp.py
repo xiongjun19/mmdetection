@@ -22,7 +22,7 @@ class Conv(ConvModule):
                  padding=None,
                  groups=1,
                  norm_cfg=dict(type='BN'),
-                 act_cfg=dict(type='LeakyReLU'),
+                 act_cfg=dict(type='Mish'),
                  **kwargs):
         super(Conv, self).__init__(
             in_channels,
@@ -73,7 +73,7 @@ class BottleneckCSP(BaseModule):
                  shortcut=True,
                  groups=1,
                  expansion=0.5,
-                 csp_act_cfg=dict(type='LeakyReLU'),
+                 csp_act_cfg=dict(type='Mish'),
                  init_cfg=None,
                  **kwargs):
         super(BottleneckCSP, self).__init__(init_cfg)
@@ -117,7 +117,7 @@ class BottleneckCSP2(BaseModule):
                  repetition=1,
                  shortcut=False,
                  groups=1,
-                 csp_act_cfg=dict(type='LeakyReLU'),
+                 csp_act_cfg=dict(type='Mish'),
                  init_cfg=None,
                  **kwargs):
         super(BottleneckCSP2, self).__init__(init_cfg)
@@ -188,7 +188,7 @@ class SPPV4(BaseModule):
                  out_channels,
                  expansion=0.5,
                  pooling_kernel_size=(5, 9, 13),
-                 csp_act_cfg=dict(type='LeakyReLU'),
+                 csp_act_cfg=dict(type='Mish'),
                  init_cfg=None,
                  **kwargs):
         super(SPPV4, self).__init__(init_cfg)
@@ -348,7 +348,7 @@ class DarknetCSP(BaseModule):
         norm_cfg (dict): Dictionary to construct and config norm layer.
             Default: dict(type='BN', requires_grad=True)
         act_cfg (dict): Config dict for activation layer.
-            Default: dict(type='LeakyReLU').
+            Default: dict(type='Mish').
         norm_eval (bool): Whether to set norm layers to eval mode, namely,
             freeze running stats (mean and var). Note: Effect on Batch Norm
             and its variants only.
@@ -385,8 +385,8 @@ class DarknetCSP(BaseModule):
                  frozen_stages=-1,
                  norm_cfg=dict(
                      type='BN', requires_grad=True, eps=0.001, momentum=0.03),
-                 act_cfg=dict(type='LeakyReLU'),
-                 csp_act_cfg=dict(type='LeakyReLU'),
+                 act_cfg=dict(type='Mish'),
+                 csp_act_cfg=dict(type='Mish'),
                  norm_eval=False,
                  pretrained=None,
                  init_cfg=None):

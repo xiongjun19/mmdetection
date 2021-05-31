@@ -47,8 +47,8 @@ class YOLOV4Neck(BaseModule):
                  end_level=-1,
                  norm_cfg=dict(
                      type='BN', requires_grad=True, eps=0.001, momentum=0.03),
-                 act_cfg=dict(type='LeakyReLU'),
-                 csp_act_cfg=dict(type='LeakyReLU'),
+                 act_cfg=dict(type='Mish'),
+                 csp_act_cfg=dict(type='Mish'),
                  upsample_cfg=dict(mode='nearest'),
                  init_cfg=None):
 
@@ -277,8 +277,8 @@ class YOLOV5Neck(BaseModule):
                  end_level=-1,
                  norm_cfg=dict(
                      type='BN', requires_grad=True, eps=0.001, momentum=0.03),
-                 act_cfg=dict(type='LeakyReLU'),
-                 csp_act_cfg=dict(type='LeakyReLU'),
+                 act_cfg=dict(type='Mish'),
+                 csp_act_cfg=dict(type='Mish'),
                  upsample_cfg=dict(mode='nearest'),
                  init_cfg=None):
 
