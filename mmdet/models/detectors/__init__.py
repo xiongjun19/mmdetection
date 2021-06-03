@@ -30,9 +30,12 @@ from .two_stage import TwoStageDetector
 from .vfnet import VFNet
 from .yolact import YOLACT
 from .yolo import YOLOV3
-<<<<<<< HEAD
 from .yolo_text_detect import YOLOV3_TD
 from .text_det_utils import *
+# from .InceptionNet import InceptionNetV1, InceptionNetV3
+from .ssd_resnet import SSDResNet
+from .ssd_mobilenet_v2 import SSDMobileNetV2
+from .ssd_mobilenet_v1 import SSDMobileNetV1
 
 __all__ = [
     'ATSS', 'BaseDetector', 'SingleStageDetector', 'TwoStageDetector', 'RPN',
@@ -40,17 +43,5 @@ __all__ = [
     'RetinaNet', 'FCOS', 'GridRCNN', 'MaskScoringRCNN', 'RepPointsDetector',
     'FOVEA', 'FSAF', 'NASFCOS', 'PointRend', 'GFL', 'CornerNet', 'PAA',
     'YOLOV3', 'YOLACT', 'VFNet', 'DETR', 'TridentFasterRCNN', 'SparseRCNN',
-    'SCNet','YOLOV3_TD'
-=======
-from .yolof import YOLOF
-
-__all__ = [
-    'ATSS', 'BaseDetector', 'SingleStageDetector', 'TwoStageDetector', 'RPN',
-    'KnowledgeDistillationSingleStageDetector', 'FastRCNN', 'FasterRCNN',
-    'MaskRCNN', 'CascadeRCNN', 'HybridTaskCascade', 'RetinaNet', 'FCOS',
-    'GridRCNN', 'MaskScoringRCNN', 'RepPointsDetector', 'FOVEA', 'FSAF',
-    'NASFCOS', 'PointRend', 'GFL', 'CornerNet', 'PAA', 'YOLOV3', 'YOLACT',
-    'VFNet', 'DETR', 'TridentFasterRCNN', 'SparseRCNN', 'SCNet',
-    'DeformableDETR', 'AutoAssign', 'YOLOF'
->>>>>>> 1a9977c520b3e32141094b6825067eeb1367958b
+    'SCNet', 'SSDResNet','SSDMobileNetV2', 'SSDMobileNetV1',
 ]

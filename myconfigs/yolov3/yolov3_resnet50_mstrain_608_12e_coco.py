@@ -1,18 +1,28 @@
-
+# fp16 settings
+# fp16 = dict(loss_scale=256.)
+# _base_ = '../_base_/default_runtime.py'
 # model settings
 model = dict(
-    type='VGG,
-    pretrained='open-mmlab://darknet53',
-    backbone=dict(type='Darknet', depth=53, out_indices=(3, 4, 5)),
+    type='YOLOV3',
+    pretrained='torchvision://resnet50',
+     backbone=dict(
+        type='ResNet',
+        depth=50,
+        num_stages=4,
+        out_indices=(1, 2, 3),
+        frozen_stages=-1,
+        norm_cfg=dict(type='BN', requires_grad=True),
+        norm_eval=True,
+        style='pytorch'),
     neck=dict(
         type='YOLOV3Neck',
         num_scales=3,
-        in_channels=[1024, 512, 256],
-        out_channels=[512, 256, 128]),
+        in_channels=[2048, 1024, 512],
+        out_channels=[1024, 512, 256]),
     bbox_head=dict(
         type='YOLOV3Head',
-        num_classes=1,
-        in_channels=[512, 256, 128],
+        num_classes=80,
+        in_channels=[1024, 512, 256],
         out_channels=[1024, 512, 256],
         anchor_generator=dict(
             type='YOLOAnchorGenerator',
@@ -53,8 +63,8 @@ model = dict(
         nms=dict(type='nms', iou_threshold=0.45),
         max_per_img=100))
 # dataset settings
-dataset_type = 'ICDR_2019'
-data_root = '/home/ubuntu/data/VOC2007/'
+dataset_type = 'CocoDataset'
+data_root = '/home/ubuntu/data/coco/'
 img_norm_cfg = dict(mean=[0, 0, 0], std=[255., 255., 255.], to_rgb=True)
 train_pipeline = [
     dict(type='LoadImageFromFile', to_float32=True),
@@ -69,7 +79,7 @@ train_pipeline = [
         type='MinIoURandomCrop',
         min_ious=(0.4, 0.5, 0.6, 0.7, 0.8, 0.9),
         min_crop_size=0.3),
-    dict(type='Resize', img_scale=(608, 608), keep_ratio=True),
+    dict(type='Resize', img_scale=[(320, 320), (608, 608)], keep_ratio=True),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),
@@ -80,7 +90,8 @@ test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(
         type='MultiScaleFlipAug',
-        img_scale=(608, 608),
+        # img_scale=(320, 320),
+        img_scale=[(320, 320),(608,608,),(1200,1200)],
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=True),
@@ -92,40 +103,39 @@ test_pipeline = [
         ])
 ]
 data = dict(
-    samples_per_gpu=8,
-    workers_per_gpu=4,
+    samples_per_gpu=16,
+    workers_per_gpu=16,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'train.txt',
-        img_prefix=data_root,
+        ann_file=data_root + 'annotations/instances_train2017.json',
+        img_prefix=data_root + 'train2017/',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
-        ann_file=data_root + 'test.txt',
-        img_prefix=data_root,
+        ann_file=data_root + 'annotations/instances_val2017.json',
+        img_prefix=data_root + 'val2017/',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        ann_file=data_root + 'test.txt',
-        img_prefix=data_root,
+        ann_file=data_root + 'annotations/instances_val2017.json',
+        img_prefix=data_root + 'val2017/',
         pipeline=test_pipeline))
 # optimizer
-optimizer = dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.0005)
+optimizer = dict(type='SGD', lr=0.002, momentum=0.9, weight_decay=0.0005)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
+# optimizer_config = dict(grad_clip=None)
 # learning policy
 lr_config = dict(
     policy='step',
     warmup='linear',
     warmup_iters=2000,  # same as burn-in in darknet
     warmup_ratio=0.1,
-    step=[218, 246])
-
-
+    step=[8, 11])
 # runtime settings
-runner = dict(type='EpochBasedRunner', max_epochs=273)
-evaluation = dict(interval=10, metric=['mAP'])
+runner = dict(type='EpochBasedRunner', max_epochs=12)
+evaluation = dict(interval=1, metric=['bbox'])
 
-checkpoint_config = dict(interval=10)
+checkpoint_config = dict(interval=1)
 # yapf:disable
 log_config = dict(
     interval=10,
@@ -140,5 +150,6 @@ dist_params = dict(backend='nccl')
 log_level = 'INFO'
 load_from = None
 resume_from = None
-work_dir = 'work_dirs/yolov3_d53_608_273e_icdr2019'
+work_dir = 'work_dirs/yolov3_resnet50_mstrain_608_12e_coco'
 workflow = [('train', 1)]
+

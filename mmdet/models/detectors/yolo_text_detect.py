@@ -39,41 +39,32 @@ class YOLOV3_TD(SingleStageDetector):
         if torch.onnx.is_in_onnx_export():
             return bbox_list
 
-        # bbox_results = [
-        #     bbox2result(det_bboxes, det_labels, self.bbox_head.num_classes)
-        #     for det_bboxes, det_labels in bbox_list
-        # ]
+        bbox_results = [
+            bbox2result(det_bboxes, det_labels, self.bbox_head.num_classes)
+            for det_bboxes, det_labels in bbox_list
+        ]
 
-        bbox_results=list()
-        textdetector  = TextDetector(self.text_cfg.MAX_HORIZONTAL_GAP,
-                                        self.text_cfg.MIN_V_OVERLAPS,
-                                        self.text_cfg.MIN_SIZE_SIM)
-        for det_bboxes, det_labels in bbox_list:
-            box_list = bbox2result(det_bboxes, det_labels, self.bbox_head.num_classes)
+        # bbox_results=list()
+        # textdetector  = TextDetector(self.text_cfg.MAX_HORIZONTAL_GAP,
+        #                                 self.text_cfg.MIN_V_OVERLAPS,
+        #                                 self.text_cfg.MIN_SIZE_SIM)
+        # for det_bboxes, det_labels in bbox_list:
+        #     box_list = bbox2result(det_bboxes, det_labels, self.bbox_head.num_classes)
             
-            boxes = np.array(box_list[0][:,0:4],dtype=np.float32)
-            scores = np.array(box_list[0][:,-1],dtype=np.float32)
+        #     boxes = np.array(box_list[0][:,0:4],dtype=np.float32)
+        #     scores = np.array(box_list[0][:,-1],dtype=np.float32)
 
-            shape = img.shape[2:]
-            boxes = textdetector.detect(boxes,
-                                scores[:, np.newaxis],
-                                shape,
-                                self.text_cfg.TEXT_LINE_NMS_THRESH,
-                                )
+        #     shape = img.shape[2:]
+        #     boxes = textdetector.detect(boxes,
+        #                         scores[:, np.newaxis],
+        #                         shape,
+        #                         self.text_cfg.TEXT_LINE_NMS_THRESH,
+        #                         )
 
-            bbox_results.append(boxes)
-
-
-    # if bboxes.shape[0] == 0:
-    #     return [np.zeros((0, 5), dtype=np.float32) for i in range(num_classes)]
-    # else:
-    #     if isinstance(bboxes, torch.Tensor):
-    #         bboxes = bboxes.detach().cpu().numpy()
-    #         labels = labels.detach().cpu().numpy()
-    #     return [bboxes[labels == i, :] for i in range(num_classes)]
-            
-
-
-
-
+        #     bbox_results.append(boxes)
+        
         return bbox_results
+
+        # for mmocr output
+        # results = dict(boundary_result=bbox_results)
+        # return [results]

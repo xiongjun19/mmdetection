@@ -99,4 +99,4 @@ class TextProposalGraphBuilder:
                 # NOTE: a box can have multiple successions(precursors) if multiple successions(precursors)
                 # have equal scores.
                 graph[index, succession_index]=True
-        return Graph(graph)
+        return Graph(graph) #graph为各个小框之间的邻接矩阵，表示每个小筐跟其他小筐是否相连

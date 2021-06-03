@@ -105,12 +105,36 @@ class TextDetector:
                ):
         if len(text_proposals)>0:
             
-            text_lines = self.text_proposal_connector.get_text_lines(text_proposals, scores, size)##合并文本行
-            keep_inds  = nms(text_lines, TEXT_LINE_NMS_THRESH)##nms
+            # origin
+            # text_lines = self.text_proposal_connector.get_text_lines(text_proposals, scores, size)##合并文本行
+            # keep_inds  = nms(text_lines, TEXT_LINE_NMS_THRESH)##nms
+            # text_lines = text_lines[keep_inds]
+            # return text_lines
+
+            # edit by kwj ,output for mmocr
+            # text_lines = self.text_proposal_connector.get_text_line_boundary(text_proposals, scores, size)##合并文本行
+            # keep_inds  = nms(text_lines[...,0:5], TEXT_LINE_NMS_THRESH)##nms
+            # text_lines = text_lines[keep_inds]
+            # text_lines = text_lines[...,4:]
+            # new_text_lines = np.concatenate([text_lines[...,1:], text_lines[...,0:1]], axis=-1)
+
+            # new_text_lines = new_text_lines.tolist()
+
+            # return new_text_lines
+
+            # edit by kwj output for mmdet
+            text_lines = self.text_proposal_connector.get_text_line_boundary(text_proposals, scores, size)##合并文本行
+            keep_inds  = nms(text_lines[...,0:5], TEXT_LINE_NMS_THRESH)##nms
             text_lines = text_lines[keep_inds]
-            return text_lines
+            text_lines = text_lines[...,0:5]
+
+            # text_lines = text_lines[np.newaxis,:] #插入一个新维度，代表检测的类别为文本，与mmdet的metric适配
+
+            return [text_lines]
+
+
         else:
-            return []
+            return [np.empty((0,5))]
 
 
 def nms(dets, thresh):

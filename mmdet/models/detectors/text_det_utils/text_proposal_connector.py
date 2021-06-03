@@ -1,5 +1,6 @@
 import numpy as np
 from .text_proposal_graph_builder import TextProposalGraphBuilder
+import cv2 as cv2
 
 class TextProposalConnector:
     """
@@ -26,9 +27,9 @@ class TextProposalConnector:
         
         """
         # tp=text proposal
-        tp_groups=self.group_text_proposals(text_proposals, scores, im_size)##find the text line 
+        tp_groups=self.group_text_proposals(text_proposals, scores, im_size)##find the text line ，将相邻的小框分成一组
         
-        text_lines=np.zeros((len(tp_groups), 8), np.float32)
+        text_lines=np.zeros((len(tp_groups), 8), np.float32) # 一个文本行由四个点八个float值确定
 
         for index, tp_indices in enumerate(tp_groups):
             text_line_boxes=text_proposals[list(tp_indices)]
@@ -65,3 +66,44 @@ class TextProposalConnector:
 
 
         return text_lines
+
+    def get_text_line_boundary(self, text_proposals, scores, im_size):  # 为了跟mmocr中的metric适配，对检测结果进行了调整。
+
+        tp_groups=self.group_text_proposals(text_proposals, scores, im_size)##find the text line ，将相邻的小框分成一组
+        
+        text_lines=np.zeros((len(tp_groups), 13), np.float32) # 前四个用于nms，第五个为置信度,后八个为jboundary
+
+        for index, tp_indices in enumerate(tp_groups):
+            text_line_boxes=text_proposals[list(tp_indices)]
+            score=scores[list(tp_indices)].sum()/float(len(tp_indices))
+
+            #the below 4 points only used for nms.
+            x0=np.min(text_line_boxes[:, 0])
+            x1=np.max(text_line_boxes[:, 2])
+            offset=(text_line_boxes[0, 2]-text_line_boxes[0, 0])*0.5
+            lt_y, rt_y=self.fit_y(text_line_boxes[:, 0], text_line_boxes[:, 1], x0+offset, x1-offset)
+            lb_y, rb_y=self.fit_y(text_line_boxes[:, 0], text_line_boxes[:, 3], x0+offset, x1-offset)
+
+            text_lines[index, 0]=x0
+            text_lines[index, 1]=min(lt_y, rt_y)
+            text_lines[index, 2]=x1
+            text_lines[index, 3]=max(lb_y, rb_y)
+            text_lines[index, 4]=score
+
+
+
+            points = np.array(text_line_boxes,dtype=np.int64)
+            points = points.reshape((-1,2))
+            rect = cv2.minAreaRect(points)
+            vertices = cv2.boxPoints(rect)
+            boundary = []
+            if min(rect[1]) > -1:
+                boundary = [p for p in vertices.flatten().tolist()]
+
+            if len(boundary) < 8:
+                continue
+            
+            text_lines[index, 5:] = np.array(boundary)
+        
+        return text_lines
+
