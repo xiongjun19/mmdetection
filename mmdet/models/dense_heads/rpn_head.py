@@ -248,3 +248,5 @@ class RPNHead(RPNTestMixin, AnchorHead):
                                      cfg.nms)
             result_list.append(dets[:cfg.max_per_img])
         return result_list
+
+

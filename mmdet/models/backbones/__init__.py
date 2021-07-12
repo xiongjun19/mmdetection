@@ -1,3 +1,4 @@
+# from mmdet.models.backbones.mobilenetv2 import MobileNetV2
 from .darknet import Darknet
 from .detectors_resnet import DetectoRS_ResNet
 from .detectors_resnext import DetectoRS_ResNeXt
@@ -16,6 +17,8 @@ from .darknet_19 import Darknet_19
 # import mmcls.models.backbones
 # from mmcls.models.backbones.mobilenet_v2 import MobileNetV2
 # from mmcls.models.backbones.mobilenet_v1 import MobileNetV1
+from .mobilenetv1 import MobileNetV1
+from .mobilenetv2 import MobileNetV2
 
 
 
@@ -24,5 +27,5 @@ __all__ = [
     'RegNet', 'ResNet', 'ResNetV1d', 'ResNeXt', 'SSDVGG', 'HRNet', 'Res2Net',
     'HourglassNet', 'DetectoRS_ResNet', 'DetectoRS_ResNeXt', 'Darknet',
     'ResNeSt', 'TridentResNet', 'GoogLeNet', 'Inception3','Darknet_19',
-    # 'MobileNetV2','MobileNetV1'
+     'MobileNetV1','MobileNetV2'
 ]

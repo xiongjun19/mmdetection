@@ -6,10 +6,10 @@
 # model settings
 model = dict(
     type='RetinaNet',
-    pretrained='torchvision://resnet50',
+    pretrained='torchvision://resnet34',
     backbone=dict(
         type='ResNet',
-        depth=50,
+        depth=34,
         num_stages=4,
         out_indices=(0, 1, 2, 3),
         frozen_stages=1,
@@ -18,7 +18,7 @@ model = dict(
         style='pytorch'),
     neck=dict(
         type='FPN',
-        in_channels=[256, 512, 1024, 2048],
+        in_channels=[64, 128, 256, 512],
         out_channels=256,
         start_level=1,
         add_extra_convs='on_input',
@@ -96,8 +96,8 @@ test_pipeline = [
         ])
 ]
 data = dict(
-    samples_per_gpu=2,
-    workers_per_gpu=2,
+    samples_per_gpu=8,
+    workers_per_gpu=4,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_train2017.json',
@@ -143,5 +143,5 @@ dist_params = dict(backend='nccl')
 log_level = 'INFO'
 load_from = None
 resume_from = None
-work_dir = 'work_dirs/retinanet/retinanet_r50_fpn_1x_coco'
+work_dir = 'work_dirs/retinanet/retinanet_r34_fpn_1x_coco'
 workflow = [('train', 1)]

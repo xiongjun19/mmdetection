@@ -35,32 +35,33 @@ def pytorch2onnx(config_path,
     }
 
     # prepare original model and meta for verifying the onnx model
-    # orig_model = build_model_from_cfg(
-    #     config_path, checkpoint_path, cfg_options=cfg_options)
-
+    orig_model = build_model_from_cfg(
+        config_path, checkpoint_path, cfg_options=cfg_options)
     one_img, one_meta = preprocess_example_input(input_config)
     model, tensor_data = generate_inputs_and_wrap_model(
         config_path, checkpoint_path, input_config, cfg_options=cfg_options)
-
-    # output_names = ['boxes', 'scores']
-    output_names = ['results']
+    output_names = ['out0', 'out1', 'out2', 'out3', 'out4', 'out5']
     if model.with_mask:
         output_names.append('masks')
     dynamic_axes = None
     if dynamic_export:
         dynamic_axes = {
             'input': {
-                0: 'batch'
- 
+                0: 'batch',
+                2: 'width',
+                3: 'height'
             },
-            'results': {
-                0: 'batch'
-
+            'dets': {
+                0: 'batch',
+                1: 'num_dets',
             },
-
-            
+            'labels': {
+                0: 'batch',
+                1: 'num_dets',
+            },
         }
-
+        if model.with_mask:
+            dynamic_axes['masks'] = {0: 'batch', 1: 'num_dets'}
 
     torch.onnx.export(
         model,
@@ -75,7 +76,7 @@ def pytorch2onnx(config_path,
         opset_version=opset_version,
         dynamic_axes=dynamic_axes)
 
-    # model.forward = orig_model.forward
+    model.forward = orig_model.forward
 
     # get the custom op path
     ort_custom_op_path = ''
@@ -119,8 +120,8 @@ def pytorch2onnx(config_path,
         tensor_data = [one_img]
 
         # get pytorch output
-        # pytorch_results = model(tensor_data, [[one_meta]], return_loss=False)
-        # pytorch_results = pytorch_results[0]
+        pytorch_results = model(tensor_data, [[one_meta]], return_loss=False)
+        pytorch_results = pytorch_results[0]
         # get onnx output
         input_all = [node.name for node in onnx_model.graph.input]
         input_initializer = [
@@ -203,7 +204,7 @@ def parse_args():
         '--shape',
         type=int,
         nargs='+',
-        default=[384, 384],
+        default=[300, 300],
         help='input image size')
     parser.add_argument(
         '--mean',

@@ -7,7 +7,7 @@ import torch.nn as nn
 from mmcv.runner import BaseModule, Sequential
 from mmdet.core import bbox2result
 # from torchvision.models.mobilenetv2 import MobileNetV2, mobilenet_v2
-from mmcls.models.backbones.mobilenet_v2 import MobileNetV2
+# from mmcls.models.backbones.mobilenet_v2 import MobileNetV2
 from mmdet.core import bbox2result
 from ..builder import DETECTORS, build_backbone, build_head, build_neck
 from .base import BaseDetector
@@ -32,15 +32,18 @@ class SSDMobileNetV2(BaseDetector):
                  init_cfg=None,
                  ):
         super(SSDMobileNetV2, self).__init__(init_cfg)
-        # backbone.pretrained = pretrained
-        self.backbone = MobileNetV2(
-            widen_factor=backbone.widen_factor,
-            out_indices=backbone.out_indices,
-            frozen_stages=backbone.frozen_stages,
-            with_cp=backbone.with_cp
-        )
+        backbone.pretrained = pretrained
+        # self.backbone = MobileNetV2(
+        #     widen_factor=backbone.widen_factor,
+        #     out_indices=backbone.out_indices,
+        #     frozen_stages=backbone.frozen_stages,
+        #     with_cp=backbone.with_cp,
+        #     pretrained=backbone.pretrained,
+        # )
+        self.backbone = build_backbone(backbone)
+
         # self.backbone.init_weights(pretrained) #keys 不匹配，需要改进
-        self._init_backbone_weight(self.backbone, pretrained)
+        # self._init_backbone_weight(self.backbone, pretrained)
         if neck is not None:
             self.neck = build_neck(neck)
         bbox_head.update(train_cfg=train_cfg)
@@ -59,8 +62,7 @@ class SSDMobileNetV2(BaseDetector):
         # self.in_channels = bbox_head.in_channels
         # self._build_additional_features(38, self.in_channels)
         # self.extra = self.additional_blocks
-
-        self._init_weights()
+        # self._init_weights()
     
     def extract_feat(self, img):
         """Directly extract features from the backbone+neck."""
@@ -222,7 +224,7 @@ class SSDMobileNetV2(BaseDetector):
 
     #     self.additional_blocks = nn.ModuleList(self.additional_blocks)
 
-    def _init_weights(self):
+    def init_weights(self):
 
         # layers = [
         #     *self.additional_blocks,
@@ -235,23 +237,23 @@ class SSDMobileNetV2(BaseDetector):
         for param in self.extra.parameters():
                 if param.dim() > 1: nn.init.xavier_uniform_(param)
 
-    def _init_backbone_weight(self, backbone, pretrained=None):
-        with torch.no_grad():
-            checkpoint = _load_checkpoint(pretrained)
-            if 'state_dict' in checkpoint:
-                state_dict_pretrain = checkpoint['state_dict']
-            else:
-                state_dict_pretrain = checkpoint
+    # def _init_backbone_weight(self, backbone, pretrained=None):
+    #     # with torch.no_grad():
+    #     checkpoint = _load_checkpoint(pretrained)
+    #     if 'state_dict' in checkpoint:
+    #         state_dict_pretrain = checkpoint['state_dict']
+    #     else:
+    #         state_dict_pretrain = checkpoint
 
-            lst_pretrain_names = list(state_dict_pretrain)
-            lst_pretrain_values = list(state_dict_pretrain.values())
+    #     lst_pretrain_names = list(state_dict_pretrain)
+    #     lst_pretrain_values = list(state_dict_pretrain.values())
 
-            state_dict = backbone.state_dict()
+    #     state_dict = backbone.state_dict()
 
-            i =0
-            for name, param in state_dict.items():
-                if 'bn' not in name:
-                    param.copy_(lst_pretrain_values[i])
-                i=i+1
+    #     i =0
+    #     for name, param in state_dict.items():
+    #         if 'num_batches_tracked' not in name:
+    #             param.copy_(lst_pretrain_values[i])
+    #         i=i+1
 
  

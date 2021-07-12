@@ -38,7 +38,7 @@ def dynamic_clip_for_onnx(x1, y1, x2, y2, max_shape):
     x1 = x1 * max_shape[1]
     y1 = y1 * max_shape[0]
     x2 = x2 * max_shape[1]
-    y2 = y2 * max_shape[0]
+    y2 = y2 * max_shape[0] 
     return x1, y1, x2, y2
 
 

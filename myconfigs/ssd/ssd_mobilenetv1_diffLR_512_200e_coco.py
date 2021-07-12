@@ -2,7 +2,7 @@
 input_size = 512
 model = dict(
     type='SSDMobileNetV1',
-    pretrained='./pretrained/mobilenetv1_model_best.pth.tar',
+    pretrained='./pretrained/mobilenetv1_105_checkpoint.pth.tar',
     backbone=dict(
         type='MobileNetV1', 
         widen_factor=1.0,
@@ -102,7 +102,7 @@ test_pipeline = [
         ])
 ]
 data = dict(
-    samples_per_gpu=32,
+    samples_per_gpu=64,
     workers_per_gpu=8,
     train=dict(
         type=dataset_type,
@@ -121,19 +121,22 @@ data = dict(
         pipeline=test_pipeline))
 
 # optimizer
-optimizer = dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.0001)
+optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=None)
+paramwise_cfg = dict(custom_keys={
+                '.backbone': dict(lr_mult=0.1, decay_mult=0.9)}) # 总体学习率的0.1
+
 # learning policy
 lr_config = dict(
     policy='step',
     warmup='linear',
     warmup_iters=500,
     warmup_ratio=0.001,
-    step=[40, 52])
-runner = dict(type='EpochBasedRunner', max_epochs=60)
-evaluation = dict(interval=4, metric=['bbox'])
+    step=[140, 180])
+runner = dict(type='EpochBasedRunner', max_epochs=200)
+evaluation = dict(interval=5, metric=['bbox'])
 
-checkpoint_config = dict(interval=4)
+checkpoint_config = dict(interval=5)
 # yapf:disable
 log_config = dict(
     interval=50,
@@ -147,8 +150,8 @@ custom_hooks = [dict(type='NumClassCheckHook')]
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 load_from = None
-resume_from ='work_dirs/ssd/ssd_mobilenetv1_512_60e_coco/epoch_9.pth'
+resume_from ='work_dirs/ssd/ssd_mobilenetv1_diffLR_512_60e_coco/epoch_4.pth'
 # resume_from = None
-work_dir = 'work_dirs/ssd/ssd_mobilenetv1_512_60e_coco'
+work_dir = 'work_dirs/ssd/ssd_mobilenetv1_diffLR_512_200e_coco'
 workflow = [('train', 1)]
 
