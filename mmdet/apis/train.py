@@ -9,6 +9,8 @@ from mmcv.runner import (HOOKS, DistSamplerSeedHook, EpochBasedRunner,
                          build_runner)
 from mmcv.utils import build_from_cfg
 
+from mmcv.runner.optimizer import DefaultOptimizerConstructor
+
 from mmdet.core import DistEvalHook, EvalHook
 from mmdet.datasets import (build_dataloader, build_dataset,
                             replace_ImageToTensor)
@@ -67,6 +69,7 @@ def train_detector(model,
             # cfg.gpus will be ignored if distributed
             len(cfg.gpu_ids),
             dist=distributed,
+            shuffle=False,
             seed=cfg.seed) for ds in dataset
     ]
 
@@ -85,7 +88,12 @@ def train_detector(model,
             model.cuda(cfg.gpu_ids[0]), device_ids=cfg.gpu_ids)
 
     # build runner
-    optimizer = build_optimizer(model, cfg.optimizer)
+    # different learning rate
+    if hasattr(cfg, 'paramwise'): #cfg.paramwise_cfg:
+        optim_builder = DefaultOptimizerConstructor(cfg.optimizer, cfg.paramwise_cfg)
+        optimizer = optim_builder(model)
+    else:
+        optimizer = build_optimizer(model, cfg.optimizer)
 
     if 'runner' not in cfg:
         cfg.runner = {

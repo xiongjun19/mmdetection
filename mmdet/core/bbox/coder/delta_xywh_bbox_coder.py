@@ -93,6 +93,22 @@ class DeltaXYWHBBoxCoder(BaseBBoxCoder):
 
         return decoded_bboxes
 
+    def decode_onnx(self,
+            bboxes,
+            pred_bboxes,
+            max_shape=None,
+            wh_ratio_clip=16 / 1000):
+
+
+        assert pred_bboxes.size(0) == bboxes.size(0)
+        if pred_bboxes.ndim == 3:
+            assert pred_bboxes.size(1) == bboxes.size(1)
+        decoded_bboxes = delta2bbox_onnx_singlestage(bboxes, pred_bboxes, self.means, self.stds,
+                                max_shape, wh_ratio_clip, self.clip_border,
+                                self.add_ctr_clamp, self.ctr_clamp)
+
+        return decoded_bboxes
+
 
 @mmcv.jit(coderize=True)
 def bbox2delta(proposals, gt, means=(0., 0., 0., 0.), stds=(1., 1., 1., 1.)):
@@ -267,5 +283,72 @@ def delta2bbox(rois,
             dim=-1).flip(-1).unsqueeze(-2)
         bboxes = torch.where(bboxes < min_xy, min_xy, bboxes)
         bboxes = torch.where(bboxes > max_xy, max_xy, bboxes)
+
+    return bboxes
+
+
+
+def delta2bbox_onnx_singlestage(rois,
+               deltas,
+               means=(0., 0., 0., 0.),
+               stds=(1., 1., 1., 1.),
+               max_shape=None,
+               wh_ratio_clip=16 / 1000,
+               clip_border=True,
+               add_ctr_clamp=False,
+               ctr_clamp=32):
+    # means = deltas.new_tensor(means).view(1,
+    #                                       -1).repeat(1,
+    #                                                  deltas.size(-1) // 4)
+    # stds = deltas.new_tensor(stds).view(1, -1).repeat(1, deltas.size(-1) // 4)
+    # denorm_deltas = deltas * stds + means
+    dx = deltas[..., 0::4]
+    dy = deltas[..., 1::4]
+    dw = deltas[..., 2::4]
+    dh = deltas[..., 3::4]
+
+    x1, y1 = rois[..., 0], rois[..., 1]
+    x2, y2 = rois[..., 2], rois[..., 3]
+    # Compute center of each roi
+    px = ((x1 + x2) * 0.5).unsqueeze(2).expand_as(dx)
+    py = ((y1 + y2) * 0.5).unsqueeze(2).expand_as(dy)
+    # Compute width/height of each roi
+    pw = (x2 - x1).unsqueeze(2).expand_as(dw)
+    ph = (y2 - y1).unsqueeze(2).expand_as(dh)
+
+    dx_width = pw * dx
+    dy_height = ph * dy
+
+    max_ratio = np.abs(np.log(wh_ratio_clip))
+    if add_ctr_clamp:
+        dx_width = torch.clamp(dx_width, max=ctr_clamp, min=-ctr_clamp)
+        dy_height = torch.clamp(dy_height, max=ctr_clamp, min=-ctr_clamp)
+        dw = torch.clamp(dw, max=max_ratio)
+        dh = torch.clamp(dh, max=max_ratio)
+    else:
+        dw = dw.clamp(min=-max_ratio, max=max_ratio)
+        dh = dh.clamp(min=-max_ratio, max=max_ratio)
+    # Use exp(network energy) to enlarge/shrink each roi
+    gw = pw * dw.exp()
+    gh = ph * dh.exp()
+    # Use network energy to shift the center of each roi
+    gx = px + dx_width
+    gy = py + dy_height
+    # Convert center-xy/width/height to top-left, bottom-right
+    x1 = gx - gw * 0.5
+    y1 = gy - gh * 0.5
+    x2 = gx + gw * 0.5
+    y2 = gy + gh * 0.5
+
+    bboxes = torch.stack([x1, y1, x2, y2], dim=2).view(deltas.size())
+
+    if clip_border and max_shape is not None:
+        # clip bboxes with dynamic `min` and `max` for onnx
+        if torch.onnx.is_in_onnx_export():
+            from mmdet.core.export import dynamic_clip_for_onnx
+            x1, y1, x2, y2 = dynamic_clip_for_onnx(x1, y1, x2, y2, max_shape)
+            bboxes = torch.stack([x1, y1, x2, y2], dim=-1).view(deltas.size())
+            return bboxes
+
 
     return bboxes

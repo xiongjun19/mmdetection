@@ -197,8 +197,19 @@ class AnchorGenerator(object):
             tuple[torch.Tensor]: The mesh grids of x and y.
         """
         # use shape instead of len to keep tracing while exporting to onnx
-        xx = x.repeat(y.shape[0])
-        yy = y.view(-1, 1).repeat(1, x.shape[0]).view(-1)
+        if torch.onnx.is_in_onnx_export():
+            xx = x.repeat(y.shape[0])
+            # yy = y.reshape(y.shape[0], 1).repeat(1, x.shape[0]).flatten(0,1) #用于导出onnx模型
+            # yy = y.unsqueeze(1).repeat(1, x.shape[0]).flatten()
+
+            yy, xx = torch.meshgrid(y, x)
+            xx = xx.flatten()
+            yy = yy.flatten()
+        else:
+            xx = x.repeat(y.shape[0])
+            yy = y.view(-1, 1).repeat(1, x.shape[0]).view(-1)
+
+
         if row_major:
             return xx, yy
         else:
@@ -257,14 +268,23 @@ class AnchorGenerator(object):
         shift_y = torch.arange(0, feat_h, device=device) * stride[1]
 
         shift_xx, shift_yy = self._meshgrid(shift_x, shift_y)
-        shifts = torch.stack([shift_xx, shift_yy, shift_xx, shift_yy], dim=-1)
+        if torch.onnx.is_in_onnx_export():
+            shifts = torch.stack([shift_xx, shift_yy, shift_xx, shift_yy], dim=1)  #for onnx
+        else:
+            shifts = torch.stack([shift_xx, shift_yy, shift_xx, shift_yy], dim=-1)  #origin
+        
         shifts = shifts.type_as(base_anchors)
         # first feat_w elements correspond to the first row of shifts
         # add A anchors (1, A, 4) to K shifts (K, 1, 4) to get
         # shifted anchors (K, A, 4), reshape to (K*A, 4)
 
         all_anchors = base_anchors[None, :, :] + shifts[:, None, :]
-        all_anchors = all_anchors.view(-1, 4)
+
+        if torch.onnx.is_in_onnx_export():
+            all_anchors = all_anchors.reshape(all_anchors.shape[0]*all_anchors.shape[1], 4)   #onnx
+        else:
+            all_anchors = all_anchors.view(-1, 4) #origin
+        
         # first A rows correspond to A anchors of (0, 0) in feature map,
         # then (0, 1), (0, 2), ...
         return all_anchors

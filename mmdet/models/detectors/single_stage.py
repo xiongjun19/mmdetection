@@ -3,7 +3,7 @@ import torch
 from mmdet.core import bbox2result
 from ..builder import DETECTORS, build_backbone, build_head, build_neck
 from .base import BaseDetector
-
+from torchvision.models.resnet import resnet34
 
 @DETECTORS.register_module()
 class SingleStageDetector(BaseDetector):
@@ -92,6 +92,10 @@ class SingleStageDetector(BaseDetector):
                 The outer list corresponds to each image. The inner list
                 corresponds to each class.
         """
+        # if torch.onnx.is_in_onnx_export():
+        #     img = torch.cat((img[:,2:3,:],img[:,1:2,:],img[:,0:1,:],),dim=1)  # BGR-->RGB
+        #     img = 
+
         x = self.extract_feat(img)
         outs = self.bbox_head(x)
         # get origin input shape to support onnx dynamic shape
@@ -99,12 +103,17 @@ class SingleStageDetector(BaseDetector):
             # get shape as tensor
             img_shape = torch._shape_as_tensor(img)[2:]
             img_metas[0]['img_shape_for_onnx'] = img_shape
-        bbox_list = self.bbox_head.get_bboxes(
-            *outs, img_metas, rescale=rescale)
+
+            bbox_list = self.bbox_head.get_bboxes_onnx(
+                *outs, img_metas, rescale=rescale)
+            # bbox_list = self.bbox_head.get_bboxes(
+            #     *outs, img_metas, rescale=rescale, with_nms=False)
         # skip post-processing when exporting to ONNX
-        if torch.onnx.is_in_onnx_export():
+            # if torch.onnx.is_in_onnx_export():
             return bbox_list
 
+        bbox_list = self.bbox_head.get_bboxes(
+                *outs, img_metas, rescale=rescale)
         bbox_results = [
             bbox2result(det_bboxes, det_labels, self.bbox_head.num_classes)
             for det_bboxes, det_labels in bbox_list

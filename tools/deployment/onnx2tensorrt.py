@@ -2,6 +2,7 @@ import argparse
 import os
 import os.path as osp
 
+import tensorrt as trt
 import numpy as np
 import onnx
 import onnxruntime as ort
@@ -27,7 +28,7 @@ def onnx2tensorrt(onnx_file,
                   show=False,
                   dataset='coco',
                   workspace_size=1,
-                  verbose=False):
+                  verbose=True):
     import tensorrt as trt
     onnx_model = onnx.load(onnx_file)
     input_shape = input_config['input_shape']
@@ -171,7 +172,7 @@ def parse_args():
 
 if __name__ == '__main__':
 
-    assert is_tensorrt_plugin_loaded(), 'TensorRT plugin should be compiled.'
+    # assert is_tensorrt_plugin_loaded(), 'TensorRT plugin should be compiled.'
     args = parse_args()
 
     if not args.input_img:

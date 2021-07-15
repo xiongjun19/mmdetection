@@ -2,7 +2,7 @@ import torch
 
 from ..builder import DETECTORS, build_backbone, build_head, build_neck
 from .base import BaseDetector
-
+import struct
 
 @DETECTORS.register_module()
 class TwoStageDetector(BaseDetector):
@@ -178,6 +178,21 @@ class TwoStageDetector(BaseDetector):
             proposal_list = self.rpn_head.simple_test_rpn(x, img_metas)
         else:
             proposal_list = proposals
+
+        # export the first stage of faster_RCNN
+
+        if torch.onnx.is_in_onnx_export():    
+            with open('rcnn.wts', 'w') as f:
+                f.write('{}\n'.format(len(self.roi_head.state_dict().keys())))
+                for k, v in self.roi_head.state_dict().items():
+                    vr = v.reshape(-1).cpu().numpy()
+                    f.write('{} {} '.format(k, len(vr)))
+                    for vv in vr:
+                        f.write(' ')
+                        f.write(struct.pack('>f',float(vv)).hex())
+                    f.write('\n')
+            
+            return proposal_list[0], proposal_list[1], x[0], x[1], x[2], x[3]
 
         return self.roi_head.simple_test(
             x, proposal_list, img_metas, rescale=rescale)

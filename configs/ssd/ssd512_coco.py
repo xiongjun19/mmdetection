@@ -13,7 +13,8 @@ model = dict(
             ratios=[[2], [2, 3], [2, 3], [2, 3], [2, 3], [2], [2]])))
 # dataset settings
 dataset_type = 'CocoDataset'
-data_root = 'data/coco/'
+data_root = '/home/ubuntu/data/coco/'
+
 img_norm_cfg = dict(mean=[123.675, 116.28, 103.53], std=[1, 1, 1], to_rgb=True)
 train_pipeline = [
     dict(type='LoadImageFromFile', to_float32=True),
@@ -53,8 +54,8 @@ test_pipeline = [
         ])
 ]
 data = dict(
-    samples_per_gpu=8,
-    workers_per_gpu=3,
+    samples_per_gpu=16,
+    workers_per_gpu=8,
     train=dict(
         _delete_=True,
         type='RepeatDataset',
@@ -69,3 +70,10 @@ data = dict(
 # optimizer
 optimizer = dict(type='SGD', lr=2e-3, momentum=0.9, weight_decay=5e-4)
 optimizer_config = dict(_delete_=True)
+
+log_config = dict(
+    interval=10,
+    hooks=[
+        dict(type='TextLoggerHook'),
+        # dict(type='TensorboardLoggerHook')
+    ])

@@ -115,12 +115,12 @@ class SSDVGG(VGG, BaseModule):
         for i, layer in enumerate(self.features):
             x = layer(x)
             if i in self.out_feature_indices:
-                outs.append(x)
+                outs.append(x)   # outs有两个tensor(,512,64,64)(,1024,32,32)
         for i, layer in enumerate(self.extra):
             x = F.relu(layer(x), inplace=True)
             if i % 2 == 1:
                 outs.append(x)
-        outs[0] = self.l2_norm(outs[0])
+        outs[0] = self.l2_norm(outs[0])  # outs在此又增加（,512,16,16）(256,8,8),(,256,4,4),(,256,2,2),(,256,1,1)
         if len(outs) == 1:
             return outs[0]
         else:
