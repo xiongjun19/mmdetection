@@ -18,7 +18,6 @@ from .custom import CustomDataset
 
 @DATASETS.register_module()
 class CocoDataset(CustomDataset):
-
     CLASSES = ('person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
                'train', 'truck', 'boat', 'traffic light', 'fire hydrant',
                'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog',
@@ -355,6 +354,60 @@ class CocoDataset(CustomDataset):
         result_files = self.results2json(results, jsonfile_prefix)
         return result_files, tmp_dir
 
+    def get_ann_info_test(self, idx):
+        img_id = self.data_infos[idx]['id']
+        ann_ids = self.coco.get_ann_ids(img_ids=[img_id])
+        ann_info = self.coco.load_anns(ann_ids)
+
+        img_info = self.data_infos[idx]
+
+        gt_bboxes = []
+        gt_labels = []
+        gt_attrs = dict(ignore=[], iscrowd=[], area=[])
+        gt_masks_ann = []
+        for i, ann in enumerate(ann_info):
+            iscrowd = ann.get('iscrowd', False)
+            ignore = ann.get('ignore', False)
+            ignore = ignore or iscrowd
+            ignore = ignore or ann['category_id'] not in self.cat_ids
+            x1, y1, w, h = ann['bbox']
+            # inter_w = max(0, min(x1 + w, img_info['width']) - max(x1, 0))
+            # inter_h = max(0, min(y1 + h, img_info['height']) - max(y1, 0))
+            # ignore = ignore or inter_w * inter_h == 0
+            # ignore = ignore or ann.get('area', w * h) <= 0 or w < 1 or h < 1
+            gt_attrs['ignore'].append(ignore)
+            gt_attrs['iscrowd'].append(iscrowd)
+            gt_attrs['area'].append(ann['area'])
+
+            bbox = [x1, y1, x1 + w, y1 + h]
+            gt_bboxes.append(bbox)
+            gt_labels.append(self.cat2label[ann['category_id']])
+            gt_masks_ann.append(ann.get('segmentation', None))
+
+        if gt_bboxes:
+            gt_bboxes = np.array(gt_bboxes, dtype=np.float32)
+            gt_labels = np.array(gt_labels, dtype=np.int64)
+            gt_attrs['ignore'] = np.array(gt_attrs['ignore'], dtype=np.bool)
+            gt_attrs['iscrowd'] = np.array(gt_attrs['iscrowd'], dtype=np.bool)
+            gt_attrs['area'] = np.array(gt_attrs['area'], dtype=np.float32)
+        else:
+            gt_bboxes = np.zeros((0, 4), dtype=np.float32)
+            gt_labels = np.array([], dtype=np.int64)
+            gt_attrs['ignore'] = np.array([], dtype=np.bool)
+            gt_attrs['iscrowd'] = np.array([], dtype=np.bool)
+            gt_attrs['area'] = np.array([], dtype=np.float32)
+
+        seg_map = img_info['filename'].replace('jpg', 'png')
+
+        ann = dict(
+            gt_bboxes=gt_bboxes,
+            gt_labels=gt_labels,
+            gt_attrs=gt_attrs,
+            masks=gt_masks_ann,
+            seg_map=seg_map)
+
+        return ann
+
     def evaluate(self,
                  results,
                  metric='bbox',
@@ -396,7 +449,9 @@ class CocoDataset(CustomDataset):
         """
 
         metrics = metric if isinstance(metric, list) else [metric]
-        allowed_metrics = ['bbox', 'segm', 'proposal', 'proposal_fast']
+        allowed_metrics = [
+            'bbox', 'segm', 'proposal', 'proposal_fast', 'fast-bbox'
+        ]
         for metric in metrics:
             if metric not in allowed_metrics:
                 raise KeyError(f'metric {metric} is not supported')
@@ -406,6 +461,39 @@ class CocoDataset(CustomDataset):
         if metric_items is not None:
             if not isinstance(metric_items, list):
                 metric_items = [metric_items]
+        if 'fast-bbox' in metrics:
+            from ..core.evaluation import eval_map_flexible
+            assert len(metrics) == 1, \
+                'fast-bbox evaluation can only be used alone!'
+            annotations = [self.get_ann_info_test(i) for i in range(len(self))]
+            eval_results = eval_map_flexible(
+                results,
+                annotations,
+                iou_thrs=[0.5 + 0.05 * x for x in range(10)],
+                breakdown=[
+                    dict(
+                        type='ScaleBreakdown',
+                        scale_ranges=dict(
+                            Scale_S=(0, 32),
+                            Scale_M=(32, 96),
+                            Scale_L=(96, 10000)))
+                ],
+                report_config=[
+                    ('map', lambda x: x['breakdown'] == 'All'),
+                    ('map50', lambda x: x['iou_threshold'] == 0.5 and x[
+                        'breakdown'] == 'All'),
+                    ('map75', lambda x: x['iou_threshold'] == 0.75 and x[
+                        'breakdown'] == 'All'),
+                    ('s_map', lambda x: x['breakdown'] == 'Scale_S'),
+                    ('m_map', lambda x: x['breakdown'] == 'Scale_M'),
+                    ('l_map', lambda x: x['breakdown'] == 'Scale_L')
+                ],
+                classes=self.CLASSES,
+                iou_calculator=dict(type='IOU2DCoCo'),
+                matcher=dict(type='MatcherCoCo'),
+                nproc=-1,
+                logger=logger)
+            return eval_results
 
         result_files, tmp_dir = self.format_results(results, jsonfile_prefix)
 

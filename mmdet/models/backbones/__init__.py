@@ -10,6 +10,7 @@ from .resnest import ResNeSt
 from .resnet import ResNet, ResNetV1d
 from .resnext import ResNeXt
 from .ssd_vgg import SSDVGG
+from .darknetcsp import DarknetCSP
 from .trident_resnet import TridentResNet
 from .inceptionv1 import GoogLeNet
 from .inceptionv3 import Inception3

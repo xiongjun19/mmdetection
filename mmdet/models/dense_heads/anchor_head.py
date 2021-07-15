@@ -566,17 +566,17 @@ class AnchorHead(BaseDenseHead, BBoxTestMixin):
         scores = scores[batch_inds, topk_inds, :]
   
 
-        # bbox_pred = self.bbox_coder.decode_onnx(anchors, bbox_pred, max_shape=img_shapes)
-        # bboxes = bbox_pred.unsqueeze(2)# 配合batch_nms plugin ,因为它要求输入为4维。
-        # return bboxes, scores
+        bbox_pred = self.bbox_coder.decode_onnx(anchors, bbox_pred, max_shape=img_shapes)
+        bboxes = bbox_pred.unsqueeze(2)# 配合batch_nms plugin ,因为它要求输入为4维。
+        return bboxes, scores
 
 
         # 用于retianet int8 测试
-        bbox_pred = self.bbox_coder.decode_onnx(anchors, bbox_pred, max_shape=img_shapes)
-        bboxes = bbox_pred.unsqueeze(2)
-        bboxes_repeat = bboxes.repeat(1, 1, scores.shape[-1], 1) # bboxes:[batch,*,numcls,4] scors:[batch,*,numcls] 
-        scores_unsquez = scores.unsqueeze(-1)
-        return torch.cat([bboxes_repeat,scores_unsquez], dim=-1)   # 合并成一个输出
+        # bbox_pred = self.bbox_coder.decode_onnx(anchors, bbox_pred, max_shape=img_shapes)
+        # bboxes = bbox_pred.unsqueeze(2)
+        # bboxes_repeat = bboxes.repeat(1, 1, scores.shape[-1], 1) # bboxes:[batch,*,numcls,4] scors:[batch,*,numcls] 
+        # scores_unsquez = scores.unsqueeze(-1)
+        # return torch.cat([bboxes_repeat,scores_unsquez], dim=-1)   # 合并成一个输出
 
 
         # mlvl_bboxes = []
